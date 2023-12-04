@@ -28,4 +28,3 @@ from .selectionset import SelectionSet, saveSelectionSet
 from .pose import Pose, savePose, loadPose
 from .animation import Animation, PasteOption, saveAnim, loadAnims
 from .mirrortable import MirrorTable, MirrorOption, saveMirrorTable
-from .prefab import Prefab, savePrefab, loadPrefab
