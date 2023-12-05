@@ -48,7 +48,7 @@ class ModelPanelWidget(QtWidgets.QWidget):
 
         modelPanel = self.name()
 
-        maya.cmds.modelEditor(modelPanel, edit=True, allObjects=False)
+        #//maya.cmds.modelEditor(modelPanel, edit=True, allObjects=False)
         maya.cmds.modelEditor(modelPanel, edit=True, grid=False)
         maya.cmds.modelEditor(modelPanel, edit=True, dynamics=False)
         maya.cmds.modelEditor(modelPanel, edit=True, activeOnly=False)

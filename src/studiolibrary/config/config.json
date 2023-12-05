@@ -56,6 +56,7 @@
       "studiolibrarymaya.animitem.AnimItem",
       "studiolibrarymaya.mirroritem.MirrorItem",
       "studiolibrarymaya.setsitem.SetsItem",
+      "studiolibrarymaya.prefabitem.PrefabItem",      
       "studiolibrary.folderitem.FolderItem"
     ]
 }
