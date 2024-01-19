@@ -62,7 +62,7 @@ def load(path, *args, **kwargs):
     """Convenience function for loading an PrefabItem."""
     PrefabItem(path).load(*args, **kwargs)
 
-def remove_namespace_from_node(node: str) -> str:
+def remove_namespace_from_node(node):
     """
     Deletes the given node's namespace, if it has one
 
@@ -87,7 +87,7 @@ def remove_namespace_from_node(node: str) -> str:
             # E.g. namespaces embedded in references
             pass
 
-def swap_namespace(ns: str, target_ns: str) -> None:
+def swap_namespace(ns, target_ns):
     """
     Moves the contents of the given namespace to the target namespace.
     Will create the target namespace if it does not exist.
@@ -109,7 +109,7 @@ def swap_namespace(ns: str, target_ns: str) -> None:
     cmds.namespace(mv=(ns, target_ns), f=True)
     cmds.namespace(rm=ns, force=True)
 
-def remove_namespace(ns: str) -> None:
+def remove_namespace(ns):
     """
     Deletes the given namespace from this scene
 
@@ -127,7 +127,7 @@ def remove_namespace(ns: str) -> None:
     #? Delete the (now empty) given namespace
     cmds.namespace(rm = ns, force=True)
 
-def list_all_namespaces() -> list[str]:
+def list_all_namespaces():
     """
     Lists all namespaces in the current scene
     
@@ -139,7 +139,7 @@ def list_all_namespaces() -> list[str]:
     namespaces = cmds.namespaceInfo(listOnlyNamespaces=True, recurse=True)
     return namespaces
 
-def find_namespaces(search_ns: str) -> list[str]:
+def find_namespaces(search_ns):
     """
     Finds a list of namespaces that contain the given search string
 
@@ -162,7 +162,7 @@ def find_namespaces(search_ns: str) -> list[str]:
         if match:
             output.append(match)
 
-def get_cache_from_root(root_node: str) -> str:
+def get_cache_from_root(root_node):
     """
     Gets the prefab cache node from the given root node.
 
@@ -183,7 +183,7 @@ def get_cache_from_root(root_node: str) -> str:
     #? Query the attribute to get the cache node and return it
     return cmds.listConnections(f"{root_node}.usd_cycle_cache")[0]
 
-def get_namespace_from_cache(cacheNode: str) -> str:
+def get_namespace_from_cache(cacheNode):
     """
     Returns the root_node name for the prefab rig from a given cacheNode
 
@@ -195,7 +195,6 @@ def get_namespace_from_cache(cacheNode: str) -> str:
     """
     namespace, cacheNode = ":".join(cacheNode.split(":")[:-1]), cacheNode.split(":")[-1]
     #? Ensure the cache name of the correct length
-    print(f"len={len(cacheNode.split('_'))}")
     if len(cacheNode.split("_")) != 6:
         raise ValueError("Invalid name - Could not extract: asset_code, asset_descriptor, asset_mod, cycle_name, cycle_descriptor, cache_version")
 
@@ -227,7 +226,7 @@ def get_namespace_from_cache(cacheNode: str) -> str:
        
     return namespace
 
-def get_namespace_from_root(root_node: str) -> str:
+def get_namespace_from_root(root_node):
     """
     Checks if the root node has a prefab_name attribute, and returns it.
     If no attribute, return None instead.
@@ -258,7 +257,7 @@ def get_namespace_from_root(root_node: str) -> str:
 
     return namespace
 
-def get_referenced_file_from_node(node: str) -> str:
+def get_referenced_file_from_node(node):
     """
     Returns the reference file path for the given referenced node.
 
@@ -277,7 +276,7 @@ def get_referenced_file_from_node(node: str) -> str:
     
     return ref_path
 
-def swap_referenced_namespace(referenced_file: str, newNamespace: str) -> None:
+def swap_referenced_namespace(referenced_file, newNamespace):
     """
     Changes the namespace for the given referenced file to the new namespace
 
@@ -309,7 +308,6 @@ class PrefabItem(mayafileitem.MayaFileItem):
             kwargs (dict)
 
         """
-        print(f"{kwargs=}")
         #? Make sure that a single prefab rig root node is selected
         #? Raise a value error if not.
         sel = cmds.ls(sl=True, type="transform")
@@ -353,7 +351,7 @@ class PrefabItem(mayafileitem.MayaFileItem):
             namespace=self.IMPORT_NAMESPACE, 
             returnNewNodes=True
         )
-        #//logger.debug(f"{new_nodes=}")
+        #//logger.debug(f"new_nodes: {new_nodes}")
         #? Get the imported root node
         root_node = None
         for x in new_nodes:
@@ -363,7 +361,7 @@ class PrefabItem(mayafileitem.MayaFileItem):
             if cmds.attributeQuery("isPrefab", node = x, exists = True):
                 root_node = x
                 break
-        #//logger.debug(f"{root_node=}")
+        #//logger.debug(f"root_node: {root_node}")
         assert cmds.objExists(root_node), f"{root_node} does not exist!"
 
         #? Get the cache node for the given root node
@@ -371,7 +369,7 @@ class PrefabItem(mayafileitem.MayaFileItem):
         
         #? Get the namespace from the cache node
         new_namespace = get_namespace_from_root(root_node) or get_namespace_from_cache(cache_node)
-        #//logger.debug(f"{new_namespace=}")
+        #//logger.debug(f"new_namespace: {new_namespace}")
 
         #? Get the reference path
         ref_path = get_referenced_file_from_node(root_node)
@@ -381,14 +379,10 @@ class PrefabItem(mayafileitem.MayaFileItem):
 
         #? Get and rename the reference node
         all_reference_nodes = cmds.ls(f"*{self.IMPORT_NAMESPACE}*", type="reference")
-        print(f"{all_reference_nodes=}")
 
         for ref in all_reference_nodes:
-            print(f"{ref=}")
             ns = cmds.referenceQuery(ref, ns=True)
-            print(f"{ns=}")
             ns = ns.strip(":")
-            print(f"{ns=}")
             if new_namespace == ns:
                 newName = f"{new_namespace}RN"
                 cmds.lockNode(ref, l=False)
