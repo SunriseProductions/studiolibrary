@@ -15,7 +15,6 @@ NOTE: Make sure you register this item in the config.
 import re
 import os
 import logging
-from mutils import attribute
 
 from studiolibrarymaya import mayafileitem
 
@@ -287,6 +286,33 @@ def swap_referenced_namespace(referenced_file, newNamespace):
     """
     cmds.file(referenced_file, e=1, namespace=newNamespace)
 
+def group_prefab(root_node, group_name = "__Prefabs__"):
+    """
+    Parents the given root node to the Prefabs group. If the 
+    group does not exist in the current scene, it will be created
+    first.
+
+    Args:
+        root_node (str): The prefab root node to group
+        group_name (str): The name of the group node to parent to. Defaults to "__Prefabs__"
+    
+    Returns:
+        bool: True if successful, False if not
+    """ 
+    if not cmds.objExists(group_name):
+        grp = cmds.createNode("transform", name = group_name)
+        logger.info(f"The prefab group node '{grp}' did not exist, and has been created.")
+    else:
+        grp = group_name
+        logger.info(f"Found prefab group node '{grp}'.")
+    
+    try:
+        cmds.parent(root_node, grp)
+    except Exception as e:
+        print(e)
+        return False
+    return True
+
 class PrefabItem(mayafileitem.MayaFileItem):
     NAME = "Prefab"
     TYPE = "Prefab"
@@ -339,6 +365,65 @@ class PrefabItem(mayafileitem.MayaFileItem):
         Args:
             kwargs (dict)
         """
+        #//return self._load_referenced(**kwargs)
+        return self._load_imported(**kwargs)
+
+    def _load_imported(self, **kwargs):
+        """
+        This load method imports the given prefab rig instead of referencing it.
+        This allows for compatibility between multiple maya versions, as 
+        referencing multiple duplicate prefab rigs in Maya 2024 causes a crash.
+
+        Args:
+            kwargs (dict)
+        """
+        logger.info("Loading %s %s", self.path(), kwargs)
+
+        new_nodes = cmds.file(
+            self.transferPath(), 
+            i=True,
+            options="v=0;", 
+            mergeNamespacesOnClash=False,
+            namespace = self.IMPORT_NAMESPACE,
+            returnNewNodes = True
+        )
+
+        #? Get the imported root node
+        root_node = None
+        for x in new_nodes:
+            if cmds.nodeType(x) != "transform":
+                continue
+
+            if cmds.attributeQuery("isPrefab", node = x, exists = True):
+                root_node = x
+                break
+
+        if not root_node:
+            raise ValueError(f"Could not find the prefab's root node: {self.transferPath}")
+
+
+        #? Get the cache node for the given root node
+        cache_node = get_cache_from_root(root_node)
+        
+        #? Get the namespace from the cache node
+        new_namespace = get_namespace_from_root(root_node) or get_namespace_from_cache(cache_node)
+
+        #? Swap to the new namespace
+        swap_namespace(self.IMPORT_NAMESPACE, new_namespace)
+        root_node = root_node.replace(self.IMPORT_NAMESPACE, new_namespace)
+        
+        #? Parent the root node to the prefabs group
+        group_prefab(root_node)
+
+    def _load_referenced(self, **kwargs):
+        """
+        This load method references the given prefab rig instead of importing it.
+        This allows for compatibility between multiple maya versions, as 
+        referencing multiple duplicate prefab rigs in Maya 2024 causes a crash.
+
+        Args:
+            kwargs (dict)
+        """
         logger.info("Loading %s %s", self.path(), kwargs)
 
         new_nodes = cmds.file(
@@ -361,21 +446,25 @@ class PrefabItem(mayafileitem.MayaFileItem):
             if cmds.attributeQuery("isPrefab", node = x, exists = True):
                 root_node = x
                 break
-        #//logger.debug(f"root_node: {root_node}")
-        assert cmds.objExists(root_node), f"{root_node} does not exist!"
+
+        if not root_node:
+            raise ValueError(f"Could not find the prefab's root node: {self.transferPath}")
 
         #? Get the cache node for the given root node
         cache_node = get_cache_from_root(root_node)
         
         #? Get the namespace from the cache node
         new_namespace = get_namespace_from_root(root_node) or get_namespace_from_cache(cache_node)
-        #//logger.debug(f"new_namespace: {new_namespace}")
 
         #? Get the reference path
         ref_path = get_referenced_file_from_node(root_node)
         
         #? Move the nodes to it's new namespace
         swap_referenced_namespace(ref_path, new_namespace)
+        root_node = root_node.replace(self.IMPORT_NAMESPACE, new_namespace)
+                                      
+        #? Parent the root node to the prefabs group
+        group_prefab(root_node)
 
         #? Get and rename the reference node
         all_reference_nodes = cmds.ls(f"*{self.IMPORT_NAMESPACE}*", type="reference")
@@ -390,8 +479,6 @@ class PrefabItem(mayafileitem.MayaFileItem):
                 cmds.lockNode(newName, l=True)
                 logger.debug(f"Renamed {ref} to {newName}")
                 break
-
-
         
     def loadFromCurrentValues(self):
         """Load the mirror table using the settings for this item."""
