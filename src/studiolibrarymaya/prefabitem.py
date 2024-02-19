@@ -399,7 +399,7 @@ class PrefabItem(mayafileitem.MayaFileItem):
                 break
 
         if not root_node:
-            raise ValueError(f"Could not find the prfab's root node: {self.transferPath}")
+            raise ValueError(f"Could not find the prefab's root node: {self.transferPath}")
 
 
         #? Get the cache node for the given root node
@@ -448,7 +448,7 @@ class PrefabItem(mayafileitem.MayaFileItem):
                 break
 
         if not root_node:
-            raise ValueError(f"Could not find the prfab's root node: {self.transferPath}")
+            raise ValueError(f"Could not find the prefab's root node: {self.transferPath}")
 
         #? Get the cache node for the given root node
         cache_node = get_cache_from_root(root_node)
