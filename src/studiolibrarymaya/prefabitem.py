@@ -59,7 +59,7 @@ def save(path: str, root_node:str, *args, **kwargs):
 
 def load(path, *args, **kwargs):
     """Convenience function for loading an PrefabItem."""
-    PrefabItem(path).load(*args, **kwargs)
+    return PrefabItem(path).load(*args, **kwargs)
 
 def remove_namespace_from_node(node):
     """
@@ -414,6 +414,8 @@ class PrefabItem(mayafileitem.MayaFileItem):
         
         #? Parent the root node to the prefabs group
         group_prefab(root_node)
+
+        return root_node
 
     def _load_referenced(self, **kwargs):
         """
